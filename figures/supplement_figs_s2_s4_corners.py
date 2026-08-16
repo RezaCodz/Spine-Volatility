@@ -31,18 +31,25 @@ def main():
 
     one_exp_dims = [0, 1, 2, 3, 4, 5, 6]  # tau + all six amplitudes
     two_tau_dims = [0, 1, 2, 3, 13, 14]  # both taus, a_hs pair, a_nl_hs pair
+    # dynesty's own default span (fraction of weighted samples) when none is given.
+    default_span = 0.999999426697
+    # The with-offset model's two taus have a long, uninformative tail (the
+    # fixed offset already carries the asymptote, so the data don't pin them
+    # down past ~20 days); clip both to 0-20 days for readability, matching
+    # the two-timescale-no-offset model's naturally tighter posterior.
+    span_two_exp_with_offset = [(0, 20), (0, 20)] + [default_span] * 4
 
     corner_models = [
-        (results_one_exp, relaxation.ONE_EXP_LABELS, one_exp_dims, "Fig. S2: one-exponential + offset", "fig_s2_corner_one_exp"),
-        (results_two_offset, relaxation.TWO_EXP_LABELS, two_tau_dims, "Fig. S3: two-timescale + offset", "fig_s3_corner_two_exp_offset"),
-        (results_two_no_offset, relaxation.TWO_EXP_LABELS, two_tau_dims, "Fig. S4: two-timescale, no offset", "fig_s4_corner_two_exp_no_offset"),
+        (results_one_exp, relaxation.ONE_EXP_LABELS, one_exp_dims, "Fig. S2: one-exponential + offset", "fig_s2_corner_one_exp", None),
+        (results_two_offset, relaxation.TWO_EXP_LABELS, two_tau_dims, "Fig. S3: two-timescale + offset", "fig_s3_corner_two_exp_offset", span_two_exp_with_offset),
+        (results_two_no_offset, relaxation.TWO_EXP_LABELS, two_tau_dims, "Fig. S4: two-timescale, no offset", "fig_s4_corner_two_exp_no_offset", None),
     ]
 
     with plt.rc_context({"font.size": 7, "axes.titlesize": 7, "axes.labelsize": 7,
                           "xtick.labelsize": 7, "ytick.labelsize": 7, "pdf.fonttype": 42, "ps.fonttype": 42}):
-        for results, all_labels, dims, title, basename in corner_models:
+        for results, all_labels, dims, title, basename, span in corner_models:
             selected_labels = [all_labels[i] for i in dims]
-            fig, axes = dyplot.cornerplot(results, dims=dims, labels=selected_labels, show_titles=True,
+            fig, axes = dyplot.cornerplot(results, dims=dims, span=span, labels=selected_labels, show_titles=True,
                                            title_kwargs={"fontsize": 7}, label_kwargs={"fontsize": 7})
             fig.set_size_inches(FIGSIZE_MM[0] * MM_TO_INCH, FIGSIZE_MM[1] * MM_TO_INCH)
             fig.suptitle(title, y=1.02, fontsize=7)

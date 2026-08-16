@@ -25,6 +25,19 @@ EVENT_RATE_MODELS = {
 }
 PLOT_ORDER = ["normal", "only_head_events", "neck_and_coordinated_events", "only_coordinated_events"]
 
+# Individual trajectory traces are only drawn for these two classes (matching
+# the original figures); "neck_and_coordinated_events" and
+# "only_coordinated_events" appear only in the adjacent density panel, to
+# keep the trace plot legible.
+TRAJECTORY_MODELS = {"normal", "only_head_events"}
+
+STYLE = {
+    "normal": dict(color="blue", linestyle="-", label="Normal", trace_alpha=0.08),
+    "only_head_events": dict(color="#D55E00", linestyle="-", label="Only head", trace_alpha=0.18),
+    "neck_and_coordinated_events": dict(color="#0072B2", linestyle=(0, (8, 2, 2, 2)), label="Neck + coordinated", trace_alpha=0.18),
+    "only_coordinated_events": dict(color="#009E73", linestyle=(0, (5, 2, 1.5, 2)), label="Only coordinated", trace_alpha=0.18),
+}
+
 
 @dataclass
 class EventJumpSizes:

@@ -83,7 +83,7 @@ src/spine_volatility/
 ├── simulation/
 │   ├── ou_trajectory.py         spectral-domain OU trajectory generator
 │   └── event_knockout.py        event-class-gated counterfactual simulator (Fig. 6c/S5)
-├── plotting/                    shared 3D-axis and KDE-isosurface helpers
+├── plotting/                    shared 3D-axis, KDE-isosurface, and adjacent-density-panel helpers
 └── paths.py                     data/results directory configuration
 ```
 

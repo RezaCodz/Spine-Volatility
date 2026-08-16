@@ -8,16 +8,17 @@ result isn't specific to that one example spine.
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.lines import Line2D
 
 from spine_volatility import current_proxy, data
 from spine_volatility.distributions import population_variance
 from spine_volatility.models import relaxation
 from spine_volatility.paths import FIGURES_DIR, INFERENCE_DIR, ensure_output_dirs
+from spine_volatility.plotting.density_panel import add_kde_density
 from spine_volatility.plotting.style import apply_base_style
 from spine_volatility.simulation import event_knockout, ou_trajectory
 
-COLORS = {"normal": "blue", "only_head_events": "#D55E00",
-          "neck_and_coordinated_events": "#0072B2", "only_coordinated_events": "#009E73"}
+CURRENT_YLIM = (0, 50)
 
 
 def main():
@@ -70,33 +71,47 @@ def main():
     features_at_day14 = [hs14, nl14, nw14]
 
     t_future = np.linspace(14.0, 30.0, 2500)
-    fig, axes = plt.subplots(2, 3, figsize=(13, 7), sharex=True)
+    density_mask = t_future >= 20.0
 
-    for ax, (title, spine_idx, feature_dim) in zip(axes.ravel(), specs):
+    fig = plt.figure(figsize=(14, 7.5))
+    outer = fig.add_gridspec(2, 3, wspace=0.28, hspace=0.35)
+    legend_handles = None
+
+    for cell, (title, spine_idx, feature_dim) in zip(outer, specs):
+        inner = cell.subgridspec(1, 2, width_ratios=[1.0, 0.22], wspace=0.05)
+        ax = fig.add_subplot(inner[0, 0])
+        ax_density = fig.add_subplot(inner[0, 1], sharey=ax)
+
         start_point = pop_mean.copy()
         start_point[feature_dim] = features_at_day14[feature_dim][spine_idx]
 
         rng = np.random.default_rng(792)
+        handles = []
         for name in event_knockout.PLOT_ORDER:
+            style = event_knockout.STYLE[name]
             cov = event_knockout.covariance_from_event_rates(jumps, event_knockout.EVENT_RATE_MODELS[name])
-            trajectories = event_knockout.simulate_ar1_from_start(start_point, cov, tau, t_future, feature_min, 100, rng)
+            trajectories = event_knockout.simulate_ar1_from_start(start_point, cov, tau, t_future, feature_min, 150, rng)
             if len(trajectories) == 0:
                 continue
             currents = current_proxy.current_from_trajectories(calib, trajectories)
-            ax.plot(t_future, currents.mean(axis=0), color=COLORS[name], label=name.replace("_", " "), linewidth=1.6)
+
+            if name in event_knockout.TRAJECTORY_MODELS:
+                for current in currents:
+                    ax.plot(t_future, current, color=style["color"], alpha=style["trace_alpha"],
+                             linewidth=0.6, linestyle=style["linestyle"])
+            add_kde_density(ax_density, currents[:, density_mask], CURRENT_YLIM, style["color"], style["linestyle"])
+            handles.append(Line2D([0], [0], color=style["color"], linestyle=style["linestyle"], label=style["label"]))
+        legend_handles = legend_handles or handles
 
         ax.set_title(title, fontsize=9)
-        ax.set_ylim(0, 50)
+        ax.set_ylim(*CURRENT_YLIM)
+        ax.set_xlim(14.0, 30.0)
+        ax_density.set_ylim(*CURRENT_YLIM)
+        ax.set_xlabel("Time (days)")
+        ax.set_ylabel("Current (pA)")
 
-    axes[1, 0].set_xlabel("Time (days)")
-    axes[1, 1].set_xlabel("Time (days)")
-    axes[1, 2].set_xlabel("Time (days)")
-    axes[0, 0].set_ylabel("Current (pA)")
-    axes[1, 0].set_ylabel("Current (pA)")
-    axes[0, 0].legend(frameon=False, fontsize=7, loc="upper right")
-
-    fig.suptitle("Fig. S5: event-class counterfactuals across morphospace", y=1.02)
-    plt.tight_layout()
+    fig.legend(handles=legend_handles, frameon=False, fontsize=8, ncol=4, loc="upper center", bbox_to_anchor=(0.5, 1.02))
+    fig.suptitle("Fig. S5: event-class counterfactuals across morphospace", y=1.06)
     fig.savefig(out_dir / "fig_s5_morphospace_counterfactuals.pdf", bbox_inches="tight")
     fig.savefig(out_dir / "fig_s5_morphospace_counterfactuals.svg", bbox_inches="tight")
     plt.close(fig)

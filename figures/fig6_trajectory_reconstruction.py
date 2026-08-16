@@ -17,6 +17,7 @@ from spine_volatility.distributions import population_variance
 from spine_volatility.models import relaxation
 from spine_volatility.plotting import kde3d
 from spine_volatility.plotting.axes3d import setup_3d_axis
+from spine_volatility.plotting.density_panel import add_kde_density
 from spine_volatility.plotting.style import apply_base_style
 from spine_volatility.paths import FIGURES_DIR, INFERENCE_DIR, ensure_output_dirs
 from spine_volatility.pooling import pooled_triplets_with_spine_weights, weighted_mean_std
@@ -162,26 +163,40 @@ def main():
     start_col = int(np.where(np.isclose(data.DELTA_LONG_DAYS, 14.0))[0][0])
     start_point = spine_point(long, small_idx, start_col)
     t_future = np.linspace(14.0, 20.0, 1200)
+    density_mask = t_future >= 18.0  # terminal-distribution window
     rng2 = np.random.default_rng(790)
+    current_ylim = (0, 50)
 
-    fig, ax = plt.subplots(figsize=(7, 4.2))
-    colors = {"normal": "blue", "only_head_events": "#D55E00",
-              "neck_and_coordinated_events": "#0072B2", "only_coordinated_events": "#009E73"}
+    fig = plt.figure(figsize=(7.5, 4.2))
+    gs = fig.add_gridspec(1, 2, width_ratios=[1.0, 0.22], wspace=0.05)
+    ax = fig.add_subplot(gs[0, 0])
+    ax_density = fig.add_subplot(gs[0, 1], sharey=ax)
+
+    from matplotlib.lines import Line2D
+    legend_handles = []
     for name in event_knockout.PLOT_ORDER:
+        style = event_knockout.STYLE[name]
         cov = event_knockout.covariance_from_event_rates(jumps, event_knockout.EVENT_RATE_MODELS[name])
-        trajectories = event_knockout.simulate_ar1_from_start(start_point, cov, tau, t_future, feature_min, 200, rng2)
+        trajectories = event_knockout.simulate_ar1_from_start(start_point, cov, tau, t_future, feature_min, 300, rng2)
         if len(trajectories) == 0:
             print(f"Warning: no accepted trajectories for {name}")
             continue
         currents = current_proxy.current_from_trajectories(calib, trajectories)
-        mean_current = currents.mean(axis=0)
-        ax.plot(t_future, mean_current, color=colors[name], label=name.replace("_", " "), linewidth=2)
 
+        if name in event_knockout.TRAJECTORY_MODELS:
+            for current in currents:
+                ax.plot(t_future, current, color=style["color"], alpha=style["trace_alpha"],
+                         linewidth=0.8, linestyle=style["linestyle"])
+        add_kde_density(ax_density, currents[:, density_mask], current_ylim, style["color"], style["linestyle"])
+        legend_handles.append(Line2D([0], [0], color=style["color"], linestyle=style["linestyle"], label=style["label"]))
+
+    ax.set_ylim(*current_ylim)
+    ax.set_xlim(14.0, 20.0)
     ax.set_xlabel("Time (days)")
     ax.set_ylabel("Synaptic current (pA)")
-    ax.legend(frameon=False, fontsize=8)
-    ax.set_title("Fig. 6c: event-class counterfactual current reconstructions")
-    fig.tight_layout()
+    ax.legend(handles=legend_handles, frameon=False, fontsize=8, loc="upper left")
+    ax_density.set_ylim(*current_ylim)
+    fig.suptitle("Fig. 6c: event-class counterfactual current reconstructions")
     fig.savefig(out_dir / "fig6c_event_counterfactuals.pdf", bbox_inches="tight")
     fig.savefig(out_dir / "fig6c_event_counterfactuals.svg", bbox_inches="tight")
     plt.close(fig)

@@ -22,7 +22,11 @@ MODEL_COLORS = {
 
 
 def panel_a(all_results, out_dir):
-    """Schematic decay curves for the three candidate models + Delta log evidence bars."""
+    """Illustrative decay curves for the three candidate models (not the
+    actual fits -- the real two-timescale fits are numerically messy/poorly
+    identified, which is the point of Fig. S3/S4, and would obscure the
+    conceptual distinction this schematic is meant to convey) + Delta log
+    evidence bars (these ARE the real fitted evidence)."""
     model_names = list(MODEL_DISPLAY_NAMES)
     logz = np.array([all_results[name].logz[-1] for name in model_names])
     logzerr = np.array([all_results[name].logzerr[-1] for name in model_names])
@@ -32,16 +36,12 @@ def panel_a(all_results, out_dir):
     fig, axes = plt.subplots(1, 2, figsize=(9, 4))
 
     t = np.linspace(0.01, 15, 500)
-    mean_one_exp = relaxation.posterior_mean(all_results["one_exp_offset"])
-    mean_two_offset = relaxation.posterior_mean(all_results["two_exp_with_offset"])
-    mean_two_no_offset = relaxation.posterior_mean(all_results["two_exp_no_offset"])
-
-    axes[0].plot(t, relaxation.one_exp_model(t, mean_one_exp[3], mean_one_exp[0], relaxation.FIXED_OFFSETS["hs"], 0),
+    offset = 0.35
+    axes[0].plot(t, relaxation.one_exp_model_cross(t, 1 - offset, 3.5, offset),
                  color=MODEL_COLORS["one_exp_offset"], label="One time constant + offset")
-    axes[0].plot(t, relaxation.two_exp_model(t, mean_two_offset[2], mean_two_offset[3], mean_two_offset[0], mean_two_offset[1],
-                                              relaxation.FIXED_OFFSETS["hs"], 0),
+    axes[0].plot(t, relaxation.two_exp_model_cross(t, 0.5 * (1 - offset), 0.5 * (1 - offset), 1.0, 8.0, offset),
                  color=MODEL_COLORS["two_exp_with_offset"], label="Two time constants + offset")
-    axes[0].plot(t, relaxation.two_exp_model(t, mean_two_no_offset[2], mean_two_no_offset[3], mean_two_no_offset[0], mean_two_no_offset[1], 0, 0),
+    axes[0].plot(t, relaxation.two_exp_model_cross(t, 0.5, 0.5, 1.0, 6.0, 0.0),
                  color=MODEL_COLORS["two_exp_no_offset"], label="Two time constants, no offset")
     axes[0].set_xlabel("Time Lag")
     axes[0].set_ylabel("Correlation")
@@ -74,13 +74,17 @@ def panel_b(results_one_exp, out_dir):
     weights = relaxation.dynesty_weights(results_one_exp)
     lo, hi = relaxation.posterior_quantile(results_one_exp, [0.025, 0.975]).T
     mean = relaxation.posterior_mean(results_one_exp)
+    std = relaxation.posterior_std(results_one_exp)
 
     fig, axes = plt.subplots(1, 4, figsize=(12, 2.6))
     for ax, dim, label in zip(axes, dims, labels):
         samples = results_one_exp.samples[:, dim]
-        ax.hist(samples, weights=weights, bins=60, color="tab:blue", alpha=0.7)
+        xlim = (mean[dim] - 6 * std[dim], mean[dim] + 6 * std[dim])
+        in_range = (samples >= xlim[0]) & (samples <= xlim[1])
+        ax.hist(samples[in_range], weights=weights[in_range], bins=60, range=xlim, color="tab:blue", alpha=0.7)
         ax.axvline(lo[dim], color="black", ls="--", lw=1)
         ax.axvline(hi[dim], color="black", ls="--", lw=1)
+        ax.set_xlim(*xlim)
         ax.set_xlabel(label)
         ax.set_yticks([])
         ax.set_title(f"{mean[dim]:.3g}", fontsize=9)

@@ -72,10 +72,55 @@ of cell 3) is likewise superseded by cell 3 and not ported.
   as-is, with the mismatch documented in `models/relaxation.py`, rather than
   "corrected" into a different result than what was actually published.
 
+## Porting mistakes caught by comparing rendered output against the paper
+
+These were bugs introduced in this port, not in the original notebooks --
+caught by rendering every script's output and comparing it panel-by-panel
+against the actual manuscript figures, which is what surfaced them:
+
+- **`pooling.pooled_values_with_spine_weights`/`pooled_triplets_with_spine_weights`
+  were normalizing weights to sum to 1.** The original notebooks intentionally
+  leave them unnormalized (each spine contributes total weight 1, split
+  across its own measurements), so a weighted mean/std is unaffected, but an
+  AIC log-likelihood sum (`distributions.py`) is extensive in the number of
+  spines. Normalizing collapsed Fig. S1's ΔAIC values by ~150-700x (e.g.
+  head size: +0.4 instead of the published +69). Fixed by leaving the
+  weights unnormalized and making `weighted_mean_std` divide by `sum(w)`
+  internally instead (correct either way).
+- **Figs. 6c and S5 were plotting the ensemble *mean* current instead of
+  individual trajectories.** These panels' entire point is to contrast a
+  *broad* current distribution (when coordinated events are included)
+  against a *narrow* one (head-only events only) -- averaging across the
+  ensemble erases exactly that signal, and produced a smooth, misleadingly
+  monotonic-looking curve instead. Fixed by plotting individual trajectories
+  (for the "normal"/"only head" classes, matching the original) plus an
+  adjacent KDE panel of the terminal-time distribution for all four classes
+  (`plotting/density_panel.py`), matching the original notebook's own
+  approach.
+- **Fig. 3's schematic left panel used the actual (numerically messy,
+  poorly-identified) two-timescale posterior means** instead of an
+  illustrative sketch, producing a curve ordering that contradicted the
+  panel's own conceptual point (a model *without* a persistent offset should
+  visibly decay toward zero; because the real two-timescale-no-offset fit
+  has a ~130-day second timescale, using its actual fitted values instead
+  made it look nearly flat instead). Replaced with hand-picked illustrative
+  decay constants, consistent with how Fig. 4 is already explicitly
+  illustrative rather than fit to data.
+- **Fig. 3's posterior-marginal histograms weren't axis-limited**, so they
+  defaulted to the full nested-sampling prior range (e.g. 0-200 days for
+  tau) instead of the converged posterior, making every histogram look like
+  a thin spike near the axis edge. Fixed by limiting each histogram to
+  mean +/- 6 sigma of its own posterior.
+- **Fig. S3's corner plot was missing the with-offset model's tau-axis
+  clipping** that the original applies (both timescales are only weakly
+  constrained past ~20 days once the offset already carries the asymptote),
+  making the with-offset corner far more zoomed-out than Fig. S4's.
+
 ## Validation performed during the port
 
-See the "Validation against the published results" section of the top-level
-README -- pair counts, ΔAIC values, and posterior parameters were checked
-against the manuscript's own reported numbers (Tables S1-S2, Fig. S1, Fig.
-S2, Fig. 5) as the primary acceptance test, rather than relying on visual
-comparison of regenerated plots alone.
+Pair counts, ΔAIC values, and posterior parameters were checked against the
+manuscript's own reported numbers (Tables S1-S2, Fig. S1, Fig. S2, Fig. 5)
+as the primary numeric acceptance test; every figure script's rendered
+output was then also visually compared panel-by-panel against the actual
+manuscript figures, which is what caught the issues listed above -- neither
+check alone would have been sufficient.
