@@ -3,11 +3,8 @@
 Analysis pipeline for **"Signatures of Hebbian plasticity in the nanoscale
 morphodynamics of cortical spines"** (Soltanipour, Nagel, Willig & Wolf).
 
-This is a clean, from-scratch reimplementation of the paper's analysis as an
-importable Python package, organized around the manuscript's own structure
-rather than around the original research notebooks. See
-[`docs/scope.md`](docs/scope.md) for exactly which notebook this project's
-code descends from, cell by cell, and what was intentionally left out.
+This is a from-scratch reimplementation of the paper's analysis as an
+importable Python package, organized around the manuscript's own structure.
 
 ## Install
 
