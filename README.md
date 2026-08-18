@@ -91,23 +91,6 @@ src/spine_volatility/
 OU-trajectory covariance matching, current-proxy calibration) against
 closed-form small examples: `pytest`.
 
-### Validation against the published results
-
-Reproducing this package's numbers against everything the manuscript
-reports directly (not just qualitatively) was the actual acceptance test
-during development:
-
-- Table S1/S2 pair counts: exact match.
-- Fig. S1 weighted ΔAIC (log-normal vs. Gaussian raw values; Gaussian vs.
-  log-normal increments): matches the published values to the first
-  decimal (e.g. head size +68.6 vs. published +69).
-- One-exponential+offset posterior (Fig. S2): tau=3.68 [95% CI 2.67-4.89]
-  vs. published tau=3.62 [+1.24/-0.97]; every amplitude within ~0.02 of the
-  published value.
-- Fig. 5's plausible event-fraction ranges (from the fitted posterior
-  through `models/event_mixture.py`): e=0.11-0.26, e1=0.33-0.45,
-  e2=0.35-0.50 vs. published e=0.12-0.27, e1=0.34-0.47, e2=0.32-0.48.
-
 ## License
 
 MIT.
