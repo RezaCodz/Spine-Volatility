@@ -75,7 +75,3 @@ src/spine_volatility/
 `tests/` covers the consolidated numerical primitives (pooling, correlation,
 OU-trajectory covariance matching, current-proxy calibration) against
 closed-form small examples: `pytest`.
-
-## License
-
-MIT.
