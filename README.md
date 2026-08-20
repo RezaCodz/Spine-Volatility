@@ -17,19 +17,7 @@ Requires Python >= 3.10.
 
 ## Data
 
-Not included in this repository (see `.gitignore`). Place the raw
-measurement files at:
-
-```
-data/
-├── short_term/final_Ctr_short.csv
-└── long_term/{WT_headarea,WT_necklength,WT_neckwidth}.csv
-```
-
-- **Long-term** data: control-mouse measurements from Steffens et al.,
-  *Science Advances* 2021 (motor cortex, layer 1 apical dendrites).
-- **Short-term** data: control-mouse measurements from Wegner et al.,
-  *eLife* 2022 (visual cortex).
+Not included in this repository.
 
 ## Reproducing the figures
 
